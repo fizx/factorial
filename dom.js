@@ -239,6 +239,8 @@ DomPredictionHelper.prototype.predictCss = function(s, r) {
   var rejected_paths = self.getPathsFor(r);
 
   var css = self.commonCss(selected_paths);
+  console.log("hai2");
+    console.log(css);
   var simplest = self.simplifyCss(css, selected_paths, rejected_paths);
 
   // Do we get off easy?

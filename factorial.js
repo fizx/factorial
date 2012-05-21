@@ -53,6 +53,20 @@ Util.appendScript = function($iframe, src) {
   $iframe.contents().find("body").append(tag);
 }
 
+Util.debounce = function(id, func) {
+  var that = this;
+  if(!this._debounces) {
+    this._debounces = {};
+  }
+  if(this._debounces[id]) {
+    clearTimeout(this._debounces[id]);
+  }
+  this._debounces[id] = setTimeout(function(){
+    func();
+    delete that._debounces[id];
+  }, 300);
+}
+
 Util.appendStyles = function($iframe, href) {
   var tag = $("<link></link>").attr("href", href).attr("rel", "stylesheet");
   $iframe.contents().find("body").append(tag);
@@ -216,6 +230,14 @@ Inspector.prototype.toggleStaticOverlay = function($element) {
   this.rejectedOverlays = [];
 }
 
+Inspector.prototype.selectNone = function(selector) {
+  for (var key in this.overlays) {
+    var overlay = this.overlays[key];
+    var $element = overlay.overlaid$Element();
+    this.toggleStaticOverlay($element);
+  }
+}
+
 Inspector.prototype.selectAll = function(selector) {
   var that = this;
   this.$iframe.contents().find("body").find(selector).not(".f_ignore").each(function(){
@@ -255,23 +277,18 @@ Inspector.prototype.updateImpliedSelector = function() {
 
   var $impliedElements = this.$iframe.contents().find("body").find(selector).not(".f_ignore");
   $impliedElements.each(function(){
-    console.log("css:")
-    var rejected = that.rejectedOverlays.slice(0);
-    rejected.push(this)
-    console.log(dom.predictCss(elements, rejected));
-    var closable = dom.predictCss(elements, rejected).length > 0;
+  var $element = $(this);
+    if($element.data("overlay")) {
+      return;
+    }
 
-    var $element = $(this);
+
     if(!$element.data("overlay")) {
       var newOverlay = new Overlay(that.$iframe).updateElement($element).implied();
-      if(closable) {
-        newOverlay.closeClick(this, function(event){
-          that.rejectedOverlays.push($element[0]);
-          that.updateImpliedSelector();
-        });
-      } else {
-        newOverlay.unclosable();
-      }
+      newOverlay.closeClick(this, function(event){
+        that.rejectedOverlays.push($element[0]);
+        that.updateImpliedSelector();
+      });
       that.impliedOverlays.push(newOverlay);
     }
   })
@@ -291,12 +308,15 @@ Inspector.prototype.toggle = function() {
     this.flyout.setContent(html);
     $("#selector").val(this.impliedSelector);
     $("#selector").bind("keyup", function(e){
-      console.log("hi")
-      var code = (e.keyCode ? e.keyCode : e.which);
-      if(code == 13) {
-        that.selectAll($("#selector").val());
-      }
-    })
+      Util.debounce("inspectselector", function() { 
+        var val = $.trim($("#selector").val());
+        if(val.length == 0) {
+          that.selectNone();
+        } else {
+          that.selectAll(val);
+        }
+      });
+    });
   }
 }
 

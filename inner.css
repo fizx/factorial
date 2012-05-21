@@ -1,11 +1,45 @@
 .overlay {
-  background-color: rgba(0, 255, 0, 0.2);
+background-color: rgba(0, 255, 0, 0.1);
   position: absolute;
   top: 0;
   left: 0;
   width: 100px;
   height: 100px;
-  z-index: 999999;
+  z-index: 9999;
   cursor: hand;
+}
+
+.overlay.implied{
+  background-color: rgba(255, 255, 0, 0.1);
+}
+
+.overlay a.close:hover{
+  background-color: #666;
+}
+
+.overlay a.close{
+  z-index: 999999;
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin-left: -22px;
+  text-decoration: none;
+  font-family: Helvetica;
+  width: 20px;
+  line-height: 20px;
+  text-align: center;
+  background: #333;
+  box-shadow: -1px 1px 1px 0px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  text-shadow:  -1px 1px 0px rgba(0, 0, 0, 0.4);;
+  display:block;
+  border: 1px #999 solid;
+  border-radius: 4px;
+  
+}
+
+.overlay.active {
+  background-color: rgba(0, 255, 0, 0.4);
+  z-index: 99999;
 }
 

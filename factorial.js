@@ -2,14 +2,16 @@ function Factorial(){}
 
 window.factorial = Factorial;
 
+/**
+ * Global settings, editable via settings pane.  Also has callbacks for when
+ */
 Factorial.settingsData = [
-  { id: "push-html", 
-    text: "Flyout menu appears next to the page, rather than above it", 
-    checked: "checked",
-    change: function(settings, value){
-      settings.flyout.setIsCoveringPage(value);
-    }
-  }
+  new Setting("push-html", 
+              "Flyout menu appears next to the page, rather than above it", 
+              true,
+              function(settings, value){
+                settings.flyout.setIsCoveringPage(value);
+              })
 ];
 
 Factorial.main = function(src, $iframe) {
@@ -21,17 +23,27 @@ Factorial.main = function(src, $iframe) {
     that.$iframe = $iframe;
     that.flyout = new Flyout($("#flyout"), 80, that.$page);
     that.settings = new Settings($("#settings"), that.flyout, that.settingsData);
-    that.inspect = new Inspector($("#inspect"), that.$iframe);
+    that.inspect = new Inspector($("#inspect"), that.$iframe, that.flyout);
     Util.appendStyles(that.$iframe, "inner.css")    
   })
 }
 
+/**
+ * Covers up the main workspace with a semi-transparent div
+ */
 Factorial.modal = function(enable) {
   if (enable) {
     $("#modal").show();
   } else {
     $("#modal").hide();
   }
+}
+
+function Setting(id, text, checked, change) {
+  this.id = id;
+  this.text = text;
+  this.checked = checked ? "checked" : null;
+  this.change = change;
 }
 
 function Util() {}
@@ -46,32 +58,185 @@ Util.appendStyles = function($iframe, href) {
   $iframe.contents().find("body").append(tag);
 }
 
-function Overlay($parent) {
-  this.$element = $("<div></div>", $parent).addClass("overlay");
-  this.$activeOverlay = $("<div></div>", this.$iframe.contents()).addClass("overlay");
-  this.$activeOverlay.hide().bind("mousemove", function(event){
-    that.updateActiveOverlay(event);
-  });
-  
-  this.$activeOverlay.hide().bind("click", function(event){
-    that.overlays.push(this.$activeOverlay)
-  });
-  this.$iframe.contents().find("body").append(this.$activeOverlay);
+function Overlay($parentFrame) {
+  this.$frameDocument = top[$parentFrame.attr("name")].document;
+  this.$parent = $(this.$frameDocument.body);
+  this.$overlay = $("<div></div>", this.$parent).addClass("overlay").addClass("f_ignore");
+  this.$shader = $("<div></div>", this.$parent).addClass("f_ignore");
+  this.$overlay.append(this.$shader);
+  this.$parent.append(this.$overlay);
+  this.$element = $();
+  this.$close = $("<a>x</a>", this.$parent).addClass("close").addClass("f_ignore");
+  this.$overlay.append(this.$close);
+}
+
+Overlay.prototype.updateElement = function($newElement) {
+  if($newElement.size() == 1 && !$newElement.hasClass("f_ignore")) {
+    this.$element = $newElement;
+    this.$overlay.show();
+    this.$overlay.css("left", $newElement.offset().left);
+    this.$overlay.css("top", $newElement.offset().top);
+    this.$overlay.width($newElement.outerWidth());
+    this.$overlay.height($newElement.outerHeight());
+  } else {
+    this.$element = $();
+  }
+  return this;
 }
 
 
-function Inspector($button, $iframe) {
+Overlay.prototype.activate = function() {
   var that = this;
+  this.$overlay.addClass("active");
+  this.$overlay.bind("mousemove.factorial", { that: that}, function(event){
+    that.updateEvent(event);
+  });
+  this.$close.hide();
+  return this;
+}
+
+Overlay.prototype.implied = function() {
+  this.$overlay.addClass("implied");
+  console.log("implied")
+  return this;
+}
+
+Overlay.prototype.deactivate = function() {
+  this.$overlay.removeClass("active");
+  this.$overlay.unbind("mousemove.factorial");
+  this.$close.show();
+  return this;
+}
+
+Overlay.prototype.overlaid$Element = function() {
+  return this.$element;
+}
+
+Overlay.prototype.updateEvent = function(event) {
+  this.hide();
+  var $newElement = $(this.$frameDocument.elementFromPoint(event.pageX, event.pageY));
+  if(this.$parent.has($newElement[0]).size() == 0) {
+    this.$element = $();
+  } else if ($newElement.hasClass("f_ignore")) {
+    // yup, ignoring.
+  } else {
+    this.updateElement($newElement);
+  }
+  return this;
+}
+
+Overlay.prototype.hide = function() {
+  this.$overlay.hide();
+  return this;
+}
+
+Overlay.prototype.click = function(context, cb) {
+  this.$overlay.bind("click.factorial", {that: context}, cb);
+  return this;
+}
+
+Overlay.prototype.closeClick = function(context, cb) {
+  this.$close.bind("click.factorial", {that: context}, cb);
+  return this;
+}
+
+Overlay.prototype.show = function() {
+  this.$overlay.show();
+  return this;
+}
+
+Overlay.prototype.cleanUp = function() {
+  this.$overlay.remove();
+  return this;
+}
+
+function Inspector($button, $iframe, flyout) {
+  var that = this;
+  console.log(flyout);
+  this.flyout = flyout;
   this.$button = $button;
   this.$iframe = $iframe;
   this.enable();
-  this.overlays = [];
+  this.overlays = {};
+  this.impliedOverlays = [];
+  this.rejectedOverlays = [];
+  this.nextOverlayId = 1;
+  this.$activeOverlay = new Overlay($iframe).activate().hide().click(this, function(event){
+    that.overlayClick(event);
+  });
   $button.click(function() { that.toggle(); });
   $.map(['html', 'body', 'head', 'base'], function(selector) {  
     $(selector, $iframe.contents()).addClass("f_ignore"); 
   });
   $("*", $iframe.contents()).bind("mouseover", { that: that}, that.over);
   $("*", $iframe.contents()).bind("mouseout", { that: that}, that.out);
+}
+
+Inspector.prototype.overlayClick = function(event) {
+  var that = event.data.that;
+  console.log(that);
+  if(!that.flyout.isEnabled()) {
+    that.flyout.enable(300, this);
+    var template = $('#inspector-mustache').html();
+    var html = Mustache.to_html(template, { checkboxes: this.data });
+    var $html = $(html);
+    this.flyout.setContent(html);
+    
+  }
+  var $element = this.$activeOverlay.overlaid$Element();
+  this.toggleStaticOverlay($element);
+}
+
+Inspector.prototype.onFlyoutClose = function() {}
+
+Inspector.prototype.toggleStaticOverlay = function($element) {
+  var that = this;
+  var currentOverlayId = $element.data("overlay");
+  if(!currentOverlayId) {
+    var newOverlay = new Overlay(this.$iframe).updateElement($element).closeClick(this, function(event){
+      that.toggleStaticOverlay($element);
+    });
+    $element.data("overlay", this.nextOverlayId);
+    this.overlays[this.nextOverlayId] = newOverlay;
+    this.nextOverlayId++;
+  } else {
+    var oldOverlay = this.overlays[currentOverlayId];
+    oldOverlay.cleanUp();
+    delete(this.overlays[currentOverlayId]);
+    $element.data("overlay", null);
+  }  
+  this.rejectedOverlays = [];
+  this.updateImpliedSelector();
+}
+
+Inspector.prototype.updateImpliedSelector = function() {
+  var that = this;
+  var dom = new DomPredictionHelper();
+  var elements = []
+  $.each(this.impliedOverlays, function(){
+    this.cleanUp();
+  });
+  this.impliedOverlays = [];
+  for (var key in this.overlays) {
+    var overlay = this.overlays[key];
+    elements.push(overlay.overlaid$Element()[0]);
+  }
+  
+  var selector = dom.predictCss(elements, this.rejectedOverlays);
+  $("#selector").val(selector);
+
+  var $impliedElements = this.$iframe.contents().find("body").find(selector).not(".f_ignore");
+  $impliedElements.each(function(){
+    var $element = $(this);
+    if(!$element.data("overlay")) {
+      var newOverlay = new Overlay(that.$iframe).updateElement($element).implied();
+      newOverlay.closeClick(function(event){
+        that.rejectedOverlays.push($element[0]);
+        that.updateImpliedSelector();
+      });
+      that.impliedOverlays.push(newOverlay);
+    }
+  })
 }
 
 Inspector.prototype.toggle = function() {
@@ -90,36 +255,24 @@ Inspector.prototype.enable = function() {
 Inspector.prototype.disable = function() {
   this.$button.removeClass("enabled");
   this.isInspecting = false;
-  this.updateActiveOverlay();
-}
-
-Inspector.prototype.updateActiveOverlay = function(event) {
-  var $overlay = this.$activeOverlay;
-  $overlay.hide();
-  var name = this.$iframe.attr("name");
-  if(!this.isInspecting) {
-    return;
-  }
-  
-  var $element = $(top[name].document.elementFromPoint(event.pageX, event.pageY ));
-  if($element.size() == 1 && !$element.hasClass("f_ignore")) {
-    $overlay.show();
-    $overlay.css("left", $element.offset().left);
-    $overlay.css("top", $element.offset().top);
-    $overlay.width($element.outerWidth());
-    $overlay.height($element.outerHeight());
-  }
+  this.$activeOverlay.hide();
 }
 
 Inspector.prototype.over = function(event) {
   var that = event.data.that;
-  that.updateActiveOverlay(event);
+  if(!that.isInspecting) {
+    return false;
+  }
+  that.$activeOverlay.updateEvent(event);
   return false;
 }
 
 Inspector.prototype.out = function(event) {
   var that = event.data.that;
-  that.updateActiveOverlay(event);
+  if(!that.isInspecting) {
+    return false;
+  }
+  that.$activeOverlay.updateEvent(event);
   return false;
 }
 
@@ -231,6 +384,9 @@ Flyout.prototype.get$Content = function() {
 }
 
 Flyout.prototype.enable = function(width, owner) {
+  if(this.owner != owner) {
+    this.disable();
+  }
   this.owner = owner;
   this.enabled = true;
   if (width) {

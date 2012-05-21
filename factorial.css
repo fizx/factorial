@@ -36,6 +36,12 @@ p {
   font-size: 48px;
 }
 
+#selector {
+  width: 100%;
+  margin:0;
+  font-size: 14px;
+}
+
 .close {
   position: absolute;
   top: 8px;

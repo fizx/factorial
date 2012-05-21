@@ -1,12 +1,14 @@
 <html>
   <head>
     <script src="underscore.js"></script>
-    <script src="jquery-1.7.2.min.js"></script>
+    <script src="jquery-1.7.2.js"></script>
+    <script src="jquery.cookie.js"></script>
     <script src="jquery-ui-1.8.20.custom.min.js"></script>
     <script src="backbone.js"></script>
     <script src="mustache.js"></script>
     <script src="factorial.js"></script>
     <script src="diff_match_patch_uncompressed.js"></script>
+    <script src="dom.js"></script>
     
     <script id="settings-mustache" type="text/template">
       <h1>Settings</h1>
@@ -19,6 +21,19 @@
       {{/checkboxes}}
       </div>
     </script>
+    <script id="inspector-mustache" type="text/template">
+      <h1>Inspect</h1>
+      <input id="selector">
+      <div class="padded-box">
+      
+      {{#checkboxes}}
+        <p>
+          <input type="checkbox" id="{{id}}">&nbsp;<label for="{{id}}">{{text}}</label>
+        </p>
+      {{/checkboxes}}
+      </div>
+    </script>
+    
     <link rel="stylesheet" href="factorial.css"></head>
     <script>
       $(function(){
@@ -32,6 +47,7 @@
       <ul id="factorial-menu">
         <li><a href="#" id="inspect"><img src="inspect.png"></a></li>
         <li><a href="#" id="edit"><img src="edit.png"></a></li>
+        <li><a href="#" id="library"><img src="library.png"></a></li>
         <li><a href="#" id="settings"><img src="settings.png"></a></li>
       </ul>
       <div id="logo">&fnof;<span id="bang">!</span></div>

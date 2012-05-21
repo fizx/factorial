@@ -5,23 +5,21 @@ background-color: rgba(0, 255, 0, 0.1);
   left: 0;
   width: 100px;
   height: 100px;
-  z-index: 9999;
-  cursor: hand;
+  z-index: 10;
 }
 
 .overlay.implied{
   background-color: rgba(255, 255, 0, 0.1);
+  cursor: default;
 }
 
 .overlay a.close:hover{
   background-color: #666;
 }
 
-.overlay a.close{
+a.close{
   z-index: 999999;
   position: absolute;
-  top: 0;
-  right: 0;
   margin-left: -22px;
   text-decoration: none;
   font-family: Helvetica;
@@ -35,10 +33,12 @@ background-color: rgba(0, 255, 0, 0.1);
   display:block;
   border: 1px #999 solid;
   border-radius: 4px;
-  
+
+  cursor: hand;
 }
 
 .overlay.active {
+  cursor: hand;
   background-color: rgba(0, 255, 0, 0.4);
   z-index: 99999;
 }

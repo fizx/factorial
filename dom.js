@@ -46,30 +46,36 @@ DomPredictionHelper.prototype.pathOf = function(elem){
   var path = "";
   for(var i = 0; i < nodes.length; i++) {
     var e = nodes[i];
+    var tmp = "";
+    var ignored = false;
     if (e) {
-      path += e.nodeName.toLowerCase();
+      tmp += e.nodeName.toLowerCase();
       var escaped = e.id && self.escapeCssNames(new String(e.id));
-      if(escaped && escaped.length > 0) path += '#' + escaped;
-    
+      if(escaped && escaped.length > 0) tmp += '#' + escaped;
+
+      if(e.nodeName.toLowerCase() == "#document") {
+        ignored = true;
+      }
+
       if(e.className) {
         jQuery.each(e.className.split(/ /), function() {
           var escaped = self.escapeCssNames(this);
+          if(this == "f_ignore") {
+            ignored = true;
+          }
           if (this && escaped.length > 0) {
-            path += '.' + escaped;
+            tmp += '.' + escaped;
           }
         });
       }
       // path += ':nth-child(' + (self.childElemNumber(e) + 1) + ')';
-      path += ' '
+      if(!ignored) {
+        path += tmp + ' ';
+      }
     }
   }
   if (path.charAt(path.length - 1) == ' ') path = path.substring(0, path.length - 1);
-  
-  var ignore = ".f_ignore";
-  if(path.lastIndexOf(ignore) != -1) {
-    path = path.substring(path.lastIndexOf(ignore) + ignore.length + 1);
-  }
-  
+
   return path;
 };
 
@@ -79,12 +85,12 @@ DomPredictionHelper.prototype.commonCss = function(array) {
   } catch(e) {
     throw "Please include the diff_match_patch library.";
   }
-  
+
   if (typeof array == 'undefined' || array.length == 0) return '';
-  
+
   var existing_tokens = {};
   var encoded_css_array = this.encodeCssForDiff(array, existing_tokens);
-  
+
   var collective_common = encoded_css_array.pop();
   jQuery.each(encoded_css_array, function(e) {
     var diff = dmp.diff_main(collective_common, this);
@@ -100,14 +106,14 @@ DomPredictionHelper.prototype.tokenizeCss = function(css_string) {
   var skip = false;
   var word = '';
   var tokens = [];
-  
+
   var css_string = css_string.replace(/,/, ' , ').replace(/\s+/g, ' ');
   var length = css_string.length;
   var c = '';
-  
+
   for (var i = 0; i < length; i++){
     c = css_string[i];
-    
+
     if (skip) {
       skip = false;
     } else if (c == '\\') {
@@ -155,46 +161,58 @@ DomPredictionHelper.prototype.encodeCssForDiff = function(strings, existing_toke
 
 DomPredictionHelper.prototype.simplifyCss = function(css, selected_paths, rejected_paths) {
   var self = this;
-  var parts = self.tokenizeCss(css);
-  var best_so_far = "";
-  if (self.selectorGets('all', selected_paths, css) && self.selectorGets('none', rejected_paths, css)) best_so_far = css;
-  
-  for (var pass = 0; pass < 4; pass++) {
-    for (var part = 0; part < parts.length; part++) {
-      var first = parts[part].substring(0,1);
-      if (self.wouldLeaveFreeFloatingNthChild(parts, part)) continue;
-      if ((pass == 0 && first == ':') || // :nth-child
-          (pass == 1 && first != ':' && first != '.' && first != '#' && first != ' ') || // elem, etc.
-          (pass == 2 && first == '.') || // classes
-          (pass == 3 && first == '#')) // ids
-      {
-        var tmp = parts[part];
-        parts[part] = '';
-        var selector = self.cleanCss(parts.join(''));
-        if (selector == '') {
-          parts[part] = tmp;
-          continue;
-        }
-        if (self.selectorGets('all', selected_paths, selector) && self.selectorGets('none', rejected_paths, selector)) {
-          best_so_far = selector;
-          if(best_so_far.indexOf(",") == -1) {
-            return self.cleanCss(best_so_far);
+  var clauses = css.split(",");
+
+  if (clauses.length == 1 && self.selectorGets('all', selected_paths, css) && self.selectorGets('none', rejected_paths, css)) {
+    return css;
+  }
+  var best_so_far = [];
+
+  for(var i = 0; i < clauses.length; i++) {
+    var css = clauses[i];
+    var parts = self.tokenizeCss(css);
+    best_so_far[i] = "";
+
+    for (var pass = 0; pass < 4; pass++) {
+      for (var part = 0; part < parts.length; part++) {
+        var first = parts[part].substring(0,1);
+        if (self.wouldLeaveFreeFloatingNthChild(parts, part)) continue;
+        if ((pass == 0 && first == ':') || // :nth-child
+            (pass == 1 && first != ':' && first != '.' && first != '#' && first != ' ') || // elem, etc.
+            (pass == 2 && first == '.') || // classes
+            (pass == 3 && first == '#')) // ids
+        {
+          var tmp = parts[part];
+          parts[part] = '';
+          var selector = self.cleanCss(parts.join(''));
+          if (selector == '') {
+            parts[part] = tmp;
+            continue;
           }
-        } else {
-          parts[part] = tmp;
+
+          var other = clauses.slice(0,i).concat(clauses.slice(i+1))
+          other.push(selector);
+          var full_selector = other.join(",");
+
+          if (self.selectorGets('all', selected_paths, full_selector) && self.selectorGets('none', rejected_paths, full_selector)) {
+            best_so_far[i] = selector;
+            console.log("F: "+selector);
+          } else {
+            parts[part] = tmp;
+          }
         }
       }
     }
   }
-  return self.cleanCss(best_so_far);
+  return self.cleanCss(best_so_far.join(" , "));
 };
 
 DomPredictionHelper.prototype.wouldLeaveFreeFloatingNthChild = function(parts, part) {
-  return (((part - 1 >= 0 && parts[part - 1].substring(0, 1) == ':') && 
-           (part - 2 < 0 || parts[part - 2] == ' ') && 
-           (part + 1 >= parts.length || parts[part + 1] == ' ')) || 
-          ((part + 1 < parts.length && parts[part + 1].substring(0, 1) == ':') && 
-           (part + 2 >= parts.length || parts[part + 2] == ' ') && 
+  return (((part - 1 >= 0 && parts[part - 1].substring(0, 1) == ':') &&
+           (part - 2 < 0 || parts[part - 2] == ' ') &&
+           (part + 1 >= parts.length || parts[part + 1] == ' ')) ||
+          ((part + 1 < parts.length && parts[part + 1].substring(0, 1) == ':') &&
+           (part + 2 >= parts.length || parts[part + 2] == ' ') &&
            (part - 1 < 0 || parts[part - 1] == ' ')));
 };
 
@@ -215,7 +233,7 @@ DomPredictionHelper.prototype.getPathsFor = function(arr) {
 
 DomPredictionHelper.prototype.predictCss = function(s, r) {
   var self = this;
-  
+
   if (s.length == 0) return '';
   var selected_paths = self.getPathsFor(s);
   var rejected_paths = self.getPathsFor(r);
@@ -225,14 +243,14 @@ DomPredictionHelper.prototype.predictCss = function(s, r) {
 
   // Do we get off easy?
   if (simplest.length > 0) return simplest;
-  
+
   // Okay, then make a union and possibly try to reduce subsets.
   var union = '';
   jQuery.each(s, function() {
     union = self.pathOf(this) + ", " + union;
   });
   union = self.cleanCss(union);
-  
+
   return self.simplifyCss(union, selected_paths, rejected_paths);
 };
 
@@ -266,14 +284,14 @@ DomPredictionHelper.prototype.selectorGets = function(type, list, the_selector) 
 
   if (list.length == 0 && type == 'all') return false;
   if (list.length == 0 && type == 'none') return true;
-  
+
   var selectors = self.fragmentSelector(the_selector);
-  
+
   var cleaned_list = [];
   jQuery.each(list, function() {
     cleaned_list.push(self.fragmentSelector(this)[0]);
   });
-    
+
   jQuery.each(selectors, function() {
     if (!result) return;
     var selector = this;
@@ -285,11 +303,11 @@ DomPredictionHelper.prototype.selectorGets = function(type, list, the_selector) 
       }
     });
   });
-  
+
   if (type == 'all' && cleaned_list.join('').length > 0) { // Some candidates didn't get matched.
     result = false;
   }
-  
+
   return result;
 };
 
@@ -329,7 +347,7 @@ DomPredictionHelper.prototype.cssToXPath = function(css_string) {
 
   var css_block = [];
   var out = "";
-  
+
   for(var i = 0; i < tokens.length; i++) {
     if (tokens[i] == ' ') {
       out += this.cssToXPathBlockHelper(css_block);
@@ -338,7 +356,7 @@ DomPredictionHelper.prototype.cssToXPath = function(css_string) {
       css_block.push(tokens[i]);
     }
   }
-  
+
   return out + this.cssToXPathBlockHelper(css_block);
 };
 
@@ -347,13 +365,13 @@ DomPredictionHelper.prototype.cssToXPathBlockHelper = function(css_block) {
   if (css_block.length == 0) return '//';
   var out = '//';
   var first = css_block[0].substring(0,1);
-  
+
   if (first == ',') return " | ";
 
   if (jQuery.inArray(first, [':', '#', '.']) != -1) {
     out += '*';
   }
-  
+
   var expressions = [];
   var re = null;
 
@@ -361,7 +379,7 @@ DomPredictionHelper.prototype.cssToXPathBlockHelper = function(css_block) {
     var current = css_block[i];
     first = current.substring(0,1);
     var rest = current.substring(1);
-    
+
     if (first == ':') {
       // We only support :nth-child(n) at the moment.
       if (re = rest.match(/^nth-child\((\d+)\)$/))
@@ -375,7 +393,7 @@ DomPredictionHelper.prototype.cssToXPathBlockHelper = function(css_block) {
       out += current;
     }
   }
-  
+
   if (expressions.length > 0) out += '[';
   for (var i = 0; i < expressions.length; i++) {
     out += expressions[i];

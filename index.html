@@ -9,11 +9,11 @@
     <script src="factorial.js"></script>
     <script src="diff_match_patch_uncompressed.js"></script>
     <script src="dom.js"></script>
-    
+
     <script id="settings-mustache" type="text/template">
       <h1>Settings</h1>
       <div class="padded-box">
-      
+
       {{#checkboxes}}
         <p>
           <input type="checkbox" id="{{id}}">&nbsp;<label for="{{id}}">{{text}}</label>
@@ -25,7 +25,7 @@
       <h1>Inspect</h1>
       <input id="selector">
       <div class="padded-box">
-      
+
       {{#checkboxes}}
         <p>
           <input type="checkbox" id="{{id}}">&nbsp;<label for="{{id}}">{{text}}</label>
@@ -33,11 +33,11 @@
       {{/checkboxes}}
       </div>
     </script>
-    
+
     <link rel="stylesheet" href="factorial.css"></head>
     <script>
       $(function(){
-        Factorial.main("example.html?r="+Math.random(), $("#document"));
+        Factorial.main("example.html?r="+Math.random(), $("#f_document"));
       });
     </script>
   </head>
@@ -54,7 +54,7 @@
     </div>
     <div id="flyout"></div>
     <div id="page">
-      <iframe id="document" src="about:blank" name="inner"></iframe>
+      <iframe id="f_document" class="f_ignore" src="about:blank" name="inner"></iframe>
     </div>
   </body>
 </html>

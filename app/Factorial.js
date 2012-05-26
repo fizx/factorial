@@ -24,8 +24,8 @@ Factorial.main = function(src, $iframe) {
     that.flyout = new Flyout($("#flyout"), 80, that.$page);
     that.settings = new Settings($("#settings"), that.flyout, that.settingsData);
     that.inspect = new Inspector($("#inspect"), that.$iframe, that.flyout);
-    that.grid = new Grid(that.$iframe, 40, 40);
-    Util.appendStyles(that.$iframe, "inner.css")
+    that.grid = new Grid(that.$iframe, 20, 20);
+    Util.appendStyles(that.$iframe, "css/inner.css")
   })
 }
 

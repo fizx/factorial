@@ -1,10 +1,30 @@
 <html>
   <head>
+    <script src="vendor/jquery-1.7.2.js"></script>
     <script src="target/factorial.js"></script>
-    <link rel="stylesheet" href="factorial.css"></head>
+    <link rel="stylesheet" href="css/factorial.css"></head>
     <script>
       $(function(){
         Factorial.main("example.html?r="+Math.random(), $("#f_document"));
+        
+        var editor = ace.edit("f_editor");
+        var HtmlMode = require("ace/mode/html").Mode;
+        editor.getSession().setMode(new HtmlMode());
+        editor.setTheme("ace/theme/twilight");
+        $("#f_document").load(function(){
+          
+          var html = $("#f_document").contents().find("html");
+          html.find(".f_ignore").each(function(){
+            var $element = $(this);
+            if ($element.is("div,a,link")) {
+              $element.remove();
+            } else {
+              $element.removeClass("f_ignore");
+            }
+          });
+          
+          editor.getSession().getDocument().setValue(html[0].outerHTML);
+        })
       });
     </script>
   </head>
@@ -12,15 +32,16 @@
     <div id="modal"></div>
     <div class="nav">
       <ul id="factorial-menu">
-        <li><a href="#" id="inspect"><img src="inspect.png"></a></li>
-        <li><a href="#" id="edit"><img src="edit.png"></a></li>
-        <li><a href="#" id="library"><img src="library.png"></a></li>
-        <li><a href="#" id="settings"><img src="settings.png"></a></li>
+        <li><a href="#" id="inspect"><img src="img/inspect.png"></a></li>
+        <li><a href="#" id="edit"><img src="img/edit.png"></a></li>
+        <li><a href="#" id="library"><img src="img/library.png"></a></li>
+        <li><a href="#" id="settings"><img src="img/settings.png"></a></li>
       </ul>
       <div id="logo">&fnof;<span id="bang">!</span></div>
     </div>
     <div id="flyout"></div>
     <div id="page">
+      <div id="f_editor" class="f_ignore"></div>
       <iframe id="f_document" class="f_ignore" src="about:blank" name="inner"></iframe>
     </div>
   </body>

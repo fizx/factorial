@@ -19,25 +19,29 @@ background-color: rgba(0, 255, 0, 0.1);
   z-index: 10;
 }
 
-.overlay.implied{
+.overlay.unselectable {
+  pointer-events:none;
+}
+
+.overlay.implied {
   background-color: rgba(255, 255, 0, 0.1);
   cursor: default;
 }
 
-.overlay.warn{
+.overlay.warn {
   background-color: rgba(255, 255, 0, 0.1);
   cursor: default;
 }
 
-.overlay.error{
+.overlay.error {
   background-color: rgba(255, 0, 0, 0.1);
 }
 
-.overlay a.close:hover{
+.overlay a.close:hover {
   background-color: #666;
 }
 
-.overlay a.close:hover{
+.overlay a.close:hover {
   background-color: #666;
 }
 

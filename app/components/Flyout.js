@@ -26,7 +26,7 @@ function Flyout($elem, x, $page){
       Factorial.modal(false);
     }
   });
-  this.$x = $("<a>x</a>").addClass("close").attr("href", "#").click(function(){
+  this.$x = $("<a>x</a>").addClass("close").addClass("f_ignore").attr("href", "#").click(function(){
     that.disable();
     return false;
   });

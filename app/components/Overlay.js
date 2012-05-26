@@ -67,9 +67,14 @@ Overlay.prototype.error = function() {
   return this;
 }
 
+Overlay.prototype.unselectable = function() {
+  this.$overlay.addClass("unselectable");
+  console.log("unselectable");
+  return this;
+}
+
 Overlay.prototype.warn = function() {
-  this.$overlay.addClass("error");
-  console.log("error")
+  this.$overlay.addClass("warn");
   return this; 
 }
 

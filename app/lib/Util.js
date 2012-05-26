@@ -20,6 +20,6 @@ Util.debounce = function(id, func) {
 }
 
 Util.appendStyles = function($iframe, href) {
-  var tag = $("<link></link>").attr("href", href).attr("rel", "stylesheet");
+  var tag = $("<link></link>").addClass("f_ignore").attr("href", href).attr("rel", "stylesheet");
   $iframe.contents().find("body").append(tag);
 }

@@ -49,7 +49,7 @@ module Handler
         mustaches[File.basename(path, ".mustache")] = File.read(path)
       end
       memo
-    end.join("\n")
+    end.join("\n;\n")
     
     content = "window.mustaches = #{mustaches.to_json};\n#{content}"
     

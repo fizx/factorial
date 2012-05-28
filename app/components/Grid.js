@@ -1,4 +1,5 @@
-function Grid($iframe, x, y) {
+function Grid($iframe, x, y, $root) {
+  $root = $($root[0]);
   var that = this;
   this.$iframe = $iframe;
   this.$frameDocument = top[$iframe.attr("name")].document;
@@ -7,6 +8,9 @@ function Grid($iframe, x, y) {
   this.draw();
   this._walk();
   this._overlays = [];
+  // new Overlay(this.$iframe).unselectable().warn().updateElement($($root[0])).closeClick(function(){});
+  this.rootTop = $root.position().top;
+  this.rootLeft = $root.position().left;
 }
 
 Grid.prototype.renderErrors = function() {
@@ -23,7 +27,7 @@ Grid.prototype.clearErrors = function() {
 
 Grid.prototype._walk = function(){
   var that = this;
-  this.$iframe.contents().find("*").not(".f_ignore").each(function(){
+  this.$iframe.contents().find(".row").not(".f_ignore").each(function(){
     var $element = $(this);
     if($element.css("display") == 'block') {
       that._examine($element);
@@ -34,10 +38,12 @@ Grid.prototype._walk = function(){
 Grid.prototype._examine = function($element){
   var pos = $element.position();
   if ($element.outerWidth() % this.x != 0 || $element.outerHeight() % this.y != 0) {
-    console.log("size fail" + $element.attr("id"));
+    // console.log("size fail" + $element.attr("id"));
     this._warnOrError($element, $());
-  } else if(pos.left % this.x != 0 || pos.top % this.y != 0) {
-    console.log("pos fail" + $element.attr("id"));
+  } else if(
+      (pos.left - this.rootLeft) % this.x != 0 || 
+      (pos.top - this.rootTop) % this.y != 0) {
+    // console.log("pos fail" + $element.attr("id"));
     if ($element.css("position") == ""       || 
         $element.css("position") == "static" ||
         $element.css("float")    == "left"   ||

@@ -11,12 +11,23 @@ function Inspector($button, $iframe, flyout) {
     that.overlayClick(event);
   });
   $button.click(function() { that.toggle(); });
-  $.map(['html', 'body', 'head', 'base'], function(selector) {
+  $.map(['html', 'head', 'base'], function(selector) {
     $(selector, $iframe.contents()).addClass("f_ignore");
   });
   $("*", $iframe.contents()).bind("mouseover", { that: that}, that.over);
   $("*", $iframe.contents()).bind("mouseout", { that: that}, that.out);
   this.disable();
+  
+  $("#selector").bind("keyup", function(e){
+    if (event.keyCode == '13') {
+      var val = $.trim($("#selector").val());
+      if(val.length == 0) {
+        that.selectNone();
+      } else {
+        that.selectAll(val);
+      }
+    }
+  });
 }
 
 Inspector.prototype.overlayClick = function(event) {
@@ -113,8 +124,7 @@ Inspector.prototype.updateImpliedSelector = function() {
     if($element.data("overlay")) {
       return;
     }
-
-
+    
     if(!$element.data("overlay")) {
       var newOverlay = new Overlay(that.$iframe).updateElement($element).implied();
       newOverlay.closeClick(this, function(event){
@@ -134,21 +144,12 @@ Inspector.prototype.toggle = function() {
   } else {
     this.enable();
     this.flyout.enable(300, this);
-    var template = $('#inspector-mustache').html();
+    var template = window.mustaches.inspector;
+    console.log(template + "!!");
     var html = Mustache.to_html(template, {});
     var $html = $(html);
     this.flyout.setContent(html);
     $("#selector").val(this.impliedSelector);
-    $("#selector").bind("keyup", function(e){
-      Util.debounce("inspectselector", function() { 
-        var val = $.trim($("#selector").val());
-        if(val.length == 0) {
-          that.selectNone();
-        } else {
-          that.selectAll(val);
-        }
-      });
-    });
   }
 }
 

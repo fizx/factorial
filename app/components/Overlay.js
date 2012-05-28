@@ -1,7 +1,7 @@
 function Overlay($parentFrame) {
   var that = this;
   this.$frameDocument = top[$parentFrame.attr("name")].document;
-  this.$parent = $(this.$frameDocument.body);
+  this.$parent = $parentFrame.contents().find("html");
   this.$overlay = $("<div></div>", this.$parent).addClass("overlay").addClass("f_ignore");
   this.$shader = $("<div></div>", this.$parent).addClass("f_ignore");
   this.$overlay.append(this.$shader);
@@ -29,7 +29,7 @@ function Overlay($parentFrame) {
 }
 
 Overlay.prototype.updateElement = function($newElement) {
-  if($newElement.size() == 1 && !$newElement.hasClass("f_ignore")) {
+  if($newElement.size() == 1 && !$newElement.hasClass("f_ignore") && $) {
     this.$element = $newElement;
     this.$overlay.show();
     this.$overlay.css("left", $newElement.offset().left);

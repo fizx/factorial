@@ -159,19 +159,28 @@ DomPredictionHelper.prototype.encodeCssForDiff = function(strings, existing_toke
   return strings_out;
 };
 
-DomPredictionHelper.prototype.simplifyCss = function(css, selected_paths, rejected_paths) {
+DomPredictionHelper.prototype.countMatches = function(css, context) {
+  return jQuery(css, context).size();
+}
+
+DomPredictionHelper.prototype.simplifyCss = function(css, selected_paths, rejected_paths, context) {
   var self = this;
   var clauses = css.split(",");
-
-  if (clauses.length == 1 && self.selectorGets('all', selected_paths, css) && self.selectorGets('none', rejected_paths, css)) {
-    return css;
-  }
+  var matches_are_correct = false;
   var best_so_far = [];
+  var match_count = 0;
+  if (clauses.length == 1 && self.selectorGets('all', selected_paths, css) && self.selectorGets('none', rejected_paths, css)) {
+    matches_are_correct = true;
+    best_so_far[0] = css;
+    match_count = this.countMatches(css, context);
+    console.log(match_count + " matches!");
+    console.log(context);
+  }
 
   for(var i = 0; i < clauses.length; i++) {
     var css = clauses[i];
     var parts = self.tokenizeCss(css);
-    best_so_far[i] = "";
+    best_so_far[i] = best_so_far[i] || "";
 
     for (var pass = 0; pass < 4; pass++) {
       for (var part = 0; part < parts.length; part++) {
@@ -233,13 +242,14 @@ DomPredictionHelper.prototype.getPathsFor = function(arr) {
 
 DomPredictionHelper.prototype.predictCss = function(s, r) {
   var self = this;
+  var context = $(s[0]).parent("body");
 
   if (s.length == 0) return '';
   var selected_paths = self.getPathsFor(s);
   var rejected_paths = self.getPathsFor(r);
 
   var css = self.commonCss(selected_paths);
-  var simplest = self.simplifyCss(css, selected_paths, rejected_paths);
+  var simplest = self.simplifyCss(css, selected_paths, rejected_paths, context);
 
   // Do we get off easy?
   if (simplest.length > 0) return simplest;
@@ -251,7 +261,7 @@ DomPredictionHelper.prototype.predictCss = function(s, r) {
   });
   union = self.cleanCss(union);
 
-  return self.simplifyCss(union, selected_paths, rejected_paths);
+  return self.simplifyCss(union, selected_paths, rejected_paths, context);
 };
 
 DomPredictionHelper.prototype.fragmentSelector = function(selector) {

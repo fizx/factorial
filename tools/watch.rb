@@ -39,7 +39,7 @@ module Handler
     WATCHES.clear
     files = Dir[GLOB] - [TARGET]
     mustaches = {}
-    content = files.inject([]) do |memo, path|
+    content = files.sort_by{|f| File.basename(f) }.inject([]) do |memo, path|
       WATCHES << EM.watch_file(path, Handler)
       
       case path

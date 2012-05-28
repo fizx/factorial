@@ -25,7 +25,7 @@ Settings.prototype.toggle = function() {
   this.flyout.disable();
 
   if(this.enabled) {
-    var template = $('#settings-mustache').html();
+    var template = window.mustaches.settings;
     var html = Mustache.to_html(template, { checkboxes: this.data });
     var $html = $(html);
     this.flyout.setContent(html);
